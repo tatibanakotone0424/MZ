@@ -16,6 +16,7 @@ namespace tkEngine{
 		*@param[in]		config		グラフィック設定。
 		*/
 		void Init(const SGraphicsConfig& config);
+		void Release();
 		/*!
 		 *@brief	平均輝度の計算。
 		 *@param[in]	renderContext		レンダリングコンテキスト
@@ -79,6 +80,5 @@ namespace tkEngine{
 		CConstantBuffer	m_cbCalcLuminanceLog;
 		CConstantBuffer m_cbTonemapCommon;
 		STonemapParam	m_tonemapParam;
-		CSamplerState m_samplerState;		//!<サンプラステート。@todo ひとまとめにした方がいい?。
 	};
 }

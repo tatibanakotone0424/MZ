@@ -7,7 +7,6 @@
 #include "tkEngine/graphics/tkSkinModelShaderConst.h"
 
 
-//#define ENABLE_G_BUFFER_MSAA  //定義するとG-BufferにMSAAがかかる。多分もう動かないよ。
 namespace tkEngine{
 	/*!
 	 * @brief	コンストラクタ。
@@ -27,7 +26,6 @@ namespace tkEngine{
 	*/
 	void CGBufferRender::Init(const SGraphicsConfig& config)
 	{
-#ifndef ENABLE_G_BUFFER_MSAA
 		CGraphicsEngine& ge = GraphicsEngine();
 
 		DXGI_SAMPLE_DESC msaaDesc;
@@ -95,10 +93,21 @@ namespace tkEngine{
 			ge.GetFrameBufferHeight(),
 			1,
 			1,
-			DXGI_FORMAT_R32_FLOAT,
+			DXGI_FORMAT_R32G32_FLOAT,
 			DXGI_FORMAT_UNKNOWN,
 			msaaDesc
 		);
+		//自己発光色バッファの初期化。
+		m_GBuffer[enGBufferEmission].Create(
+			ge.GetFrameBufferWidth(),
+			ge.GetFrameBufferHeight(),
+			1,
+			1,
+			DXGI_FORMAT_R16G16B16A16_FLOAT,
+			DXGI_FORMAT_UNKNOWN,
+			msaaDesc
+		);
+	
 		//1フレーム前の深度値を記録するためのテクスチャを作成する。
 		D3D11_TEXTURE2D_DESC texDesc;
 		ZeroMemory(&texDesc, sizeof(texDesc));
@@ -106,7 +115,7 @@ namespace tkEngine{
 		texDesc.Height = ge.GetFrameBufferHeight();
 		texDesc.MipLevels = 1;
 		texDesc.ArraySize = 1;
-		texDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		texDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
 		texDesc.SampleDesc = msaaDesc;
 		texDesc.Usage = D3D11_USAGE_DEFAULT;
 		texDesc.CPUAccessFlags = 0;
@@ -129,71 +138,7 @@ namespace tkEngine{
 			DXGI_FORMAT_UNKNOWN,
 			msaaDesc
 		);
-#else
-		//こっちが有効だとG-BufferにMSAAがかかる。
-		CGraphicsEngine& ge = GraphicsEngine();
-		//アルベドバッファの初期化。
-		m_GBuffer[enGBufferAlbedo].Create(
-			ge.GetFrameBufferWidth(),
-			ge.GetFrameBufferHeight(),
-			1,
-			1,
-			DXGI_FORMAT_R8G8B8A8_UNORM,
-			DXGI_FORMAT_D32_FLOAT,
-			ge.GetMainRenderTargetMSAADesc()
-		);
-		//法線バッファの初期化。
-		m_GBuffer[enGBufferNormal].Create(
-			ge.GetFrameBufferWidth(),
-			ge.GetFrameBufferHeight(),
-			1,
-			1,
-			DXGI_FORMAT_R16G16B16A16_FLOAT,
-			DXGI_FORMAT_UNKNOWN,
-			ge.GetMainRenderTargetMSAADesc()
-		);
-		//接ベクトルバッファの初期化。
-		m_GBuffer[enGBufferTangent].Create(
-			ge.GetFrameBufferWidth(),
-			ge.GetFrameBufferHeight(),
-			1,
-			1,
-			DXGI_FORMAT_R16G16B16A16_FLOAT,
-			DXGI_FORMAT_UNKNOWN,
-			ge.GetMainRenderTargetMSAADesc()
-		);
-		//スペキュラバッファの初期化。
-		m_GBuffer[enGBufferSpecular].Create(
-			ge.GetFrameBufferWidth(),
-			ge.GetFrameBufferHeight(),
-			1,
-			1,
-			DXGI_FORMAT_R16G16_FLOAT,
-			DXGI_FORMAT_UNKNOWN,
-			ge.GetMainRenderTargetMSAADesc()
-		);
-		//影マップの初期化。
-		m_GBuffer[enGBufferShadow].Create(
-			ge.GetFrameBufferWidth(),
-			ge.GetFrameBufferHeight(),
-			1,
-			1,
-			DXGI_FORMAT_R32_FLOAT,
-			DXGI_FORMAT_UNKNOWN,
-			ge.GetMainRenderTargetMSAADesc()
-		);
 
-		//深度バッファの初期化。
-		m_GBuffer[enGBufferDepth].Create(
-			ge.GetFrameBufferWidth(),
-			ge.GetFrameBufferHeight(),
-			1,
-			1,
-			DXGI_FORMAT_R32_FLOAT,
-			DXGI_FORMAT_UNKNOWN,
-			ge.GetMainRenderTargetMSAADesc()
-		);
-#endif
 		m_shadowBlur.Init(m_GBuffer[enGBufferShadow].GetRenderTargetSRV(), 5.0f, config.shadowRenderConfig);
 		
 		m_cb.Create(NULL, sizeof(m_cbEntity));
@@ -207,6 +152,8 @@ namespace tkEngine{
 		rc.PSSetShaderResource(enSkinModelSRVReg_DepthMap, m_GBuffer[enGBufferDepth].GetRenderTargetSRV());
 		rc.PSSetShaderResource(enSkinModelSRVReg_Tangent, m_GBuffer[enGBufferTangent].GetRenderTargetSRV());
 		rc.PSSetShaderResource(enSkinModelSRVReg_MaterialID, m_GBuffer[enGBufferMateriaID].GetRenderTargetSRV());
+		rc.PSSetShaderResource(enSkinModelSRVReg_EmissionColor, m_GBuffer[enGBufferEmission].GetRenderTargetSRV());
+
 		if (GraphicsEngine().GetShadowMap().GetSoftShadowLevel() == EnSoftShadowQualityLevel::enNone) {
 			//ハードシャドウ。
 			rc.PSSetShaderResource(enSkinModelSRVReg_SoftShadowMap, m_GBuffer[enGBufferShadow].GetRenderTargetSRV());
@@ -224,6 +171,7 @@ namespace tkEngine{
 		rc.PSUnsetShaderResource(enSkinModelSRVReg_DepthMap);
 		rc.PSUnsetShaderResource(enSkinModelSRVReg_Tangent);
 		rc.PSUnsetShaderResource(enSkinModelSRVReg_MaterialID);
+		rc.PSUnsetShaderResource(enSkinModelSRVReg_EmissionColor);
 
 		if (GraphicsEngine().GetShadowMap().GetSoftShadowLevel() == EnSoftShadowQualityLevel::enNone) {
 			//ハードシャドウ。
@@ -266,8 +214,10 @@ namespace tkEngine{
 			{ 0.0f, 1.0f, 0.0f, 1.0f }, //enGBufferNormal
 			{ 0.0f, 0.0f, 0.0f, 1.0f }, //enGBufferSpecular
 			{ 0.0f, 0.0f, 0.0f, 1.0f }, //enGBufferShadow
-			{ 1.0f, 1.0f, 1.0f, 1.0f },	//enGBufferDepth
+			{ 1.0f, MainCamera().GetFar() - MainCamera().GetNear(), 1.0f, 1.0f },	//enGBufferDepth
 			{ 1.0f, 0.0f, 0.0f, 1.0f },	//enGBufferTangent
+			{ 0.0f, 0.0f, 0.0f, 0.0f },	//enGBufferMateriaID
+			{ 0.0f, 0.0f, 0.0f, 1.0f },	//enGBufferEmission
 		};
 		
 		for (int i = 0; i < enGBufferNum; i++) {
@@ -277,12 +227,7 @@ namespace tkEngine{
 		for (auto& skinModel : m_skinModels) {
 			skinModel->Draw(rc, MainCamera().GetViewMatrix(), MainCamera().GetProjectionMatrix());
 		}
-#ifdef ENABLE_G_BUFFER_MSAA
-		//MSAAリゾルブ。
-		for (auto& rt : renderTargets) {
-			rt->ResovleMSAATexture(rc);
-		}
-#endif
+
 		//レンダリングターゲットを戻す。
 		rc.OMSetRenderTargets(numRenderTargetViews, oldRenderTargets);
 

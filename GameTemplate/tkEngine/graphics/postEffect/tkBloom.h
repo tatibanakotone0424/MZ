@@ -62,6 +62,6 @@ namespace tkEngine{
 		CShader	m_copyPS;				//!<コピー用のピクセルシェーダー。
 		SBlurParam m_blurParam;			//!<ブラー用のパラメータ。
 		CConstantBuffer m_cbBlur;
-		CSamplerState m_samplerState;		//!<サンプラステート。@todo ひとまとめにした方がいい?。
+		CConstantBuffer m_cb;
 	};
 }

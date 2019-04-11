@@ -48,10 +48,14 @@ namespace tkEngine{
 			static CGameObjectManager instance;
 			return instance;
 		}
+		/// <summary>
+		/// メインスレッドから呼ばれる実行処理。
+		/// </summary>
+		void ExecuteFromMainThread();
 		/*!
-		*@brief	実行。
+		*@brief	ゲームスレッドから呼ばれる実行処理。
 		*/
-		void Execute();
+		void ExecuteFromGameThread();
 		/*!
 		 *@brief	初期化。
 		 *@param[in]	gameObjectPrioMax	ゲームオブジェクトの優先度の最大値。(255まで)
@@ -224,6 +228,33 @@ namespace tkEngine{
 		return CGameObjectManager::Instance();
 	}
 	/*!
+	*@brief	ゲームオブジェクトの検索のヘルパー関数。
+	*@details
+	* 名前の検索が入るため遅いです。
+	*@param[in]	objectName	ゲームオブジェクトの名前。
+	*@param[in] enableErrorMessage	エラーメッセージが有効？
+	*　呼び出し側でnullptrの判定を行いたい場合は、第二引数にfalseを指定して、エラーメッセージの処理を無効にしてください。
+	*
+	*@return 見つかったインスタンスのアドレス。見つからなかった場合はnullptrを返す。
+	*/
+	template<class T>
+	static inline T* FindGO(const char* objectName, bool enableErrorMessage = true)
+	{
+		return GameObjectManager().FindGameObject<T>(objectName, enableErrorMessage);
+	}
+	/*!
+	*@brief	ゲームオブジェクトの検索のヘルパー関数。
+	*@details
+	* 同名のゲームオブジェクトに全てに対して、クエリを行いたい場合に使用してください。
+	*@param[in]	objectName	ゲームオブジェクトの名前。
+	*@param[in]	func		ゲームオブジェクトが見つかったときに呼ばれるコールバック関数。
+	*/
+	template<class T>
+	static inline void QueryGOs(const char* objectName, std::function<bool(T* go)> func)
+	{
+		return GameObjectManager().FindGameObjects<T>(objectName, func);
+	}
+	/*!
 	 *@brief	ゲームオブジェクト生成のヘルパー関数。
 	 *@param[in]	priority	プライオリティ。
 	 *@param[in]	objectName	オブジェクト名。(NULLの指定可）
@@ -253,6 +284,31 @@ namespace tkEngine{
 		GameObjectManager().DeleteGameObject(go);
 	}
 	/*!
+	 *@brief	ゲームオブジェクト削除のヘルパー関数。
+	 * NewGOを使用して作成したオブジェクトは必ずDeleteGOを実行するように。
+	 *@details
+	 * 名前の検索が入るため遅いです。
+	 *@param[in]	objectName		削除するゲームオブジェクトの名前。
+	 */
+	static inline void DeleteGO(const char* objectName)
+	{
+		IGameObject* go = FindGO<IGameObject>(objectName);
+		GameObjectManager().DeleteGameObject(go);
+	}
+	/*!
+	*@brief	ゲームオブジェクトを名前指定で削除。
+	*@details
+	* 名前検索が行われるため遅いです。
+	*@param[in]	objectName		削除するゲームオブジェクトの名前。
+	*/
+	static inline void DeleteGOs(const char* objectName)
+	{
+		QueryGOs<IGameObject>(objectName, [](auto go) {
+			DeleteGO(go);
+			return true;
+		});
+	}
+	/*!
 	 *@brief	ゲームオブジェクトの追加のヘルパー関数。
 	 *@param[in]	go			追加するゲームオブジェクト。
 	 *@param[in]	priority	プライオリティ。
@@ -269,31 +325,8 @@ namespace tkEngine{
 	{
 		GameObjectManager().FindGameObjectsWithTag(tags, func);
 	}
-	/*!
-	*@brief	ゲームオブジェクトの検索のヘルパー関数。
-	*@param[in]	objectName	ゲームオブジェクトの名前。
-	*@param[in] enableErrorMessage	エラーメッセージが有効？
-	*　呼び出し側でnullptrの判定を行いたい場合は、第二引数にfalseを指定して、エラーメッセージの処理を無効にしてください。
-	*
-	*@return 見つかったインスタンスのアドレス。見つからなかった場合はnullptrを返す。
-	*/
-	template<class T>
-	static inline T* FindGO(const char* objectName, bool enableErrorMessage = true)
-	{
-		return GameObjectManager().FindGameObject<T>(objectName, enableErrorMessage);
-	}
-	/*!
-	*@brief	ゲームオブジェクトの検索のヘルパー関数。
-	*@details
-	* 同名のゲームオブジェクトに全てに対して、クエリを行いたい場合に使用してください。
-	*@param[in]	objectName	ゲームオブジェクトの名前。
-	*@param[in]	func		ゲームオブジェクトが見つかったときに呼ばれるコールバック関数。
-	*/
-	template<class T>
-	static inline void QueryGOs(const char* objectName, std::function<bool(T* go)> func)
-	{
-		return GameObjectManager().FindGameObjects<T>(objectName, func);
-	}
+	
+	
 }
 #endif // _CGAMEOBJECTMANAGER_H_
  

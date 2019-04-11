@@ -108,6 +108,9 @@
     <Filter Include="Assets\modelData\preset">
       <UniqueIdentifier>{0f454397-ac31-43de-b306-2a569946b724}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\nature">
+      <UniqueIdentifier>{0633ba0e-bad6-47ef-863a-6c15ce68dabc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gameObject\tkGameObjectManager.h">
@@ -428,6 +431,30 @@
     <ClInclude Include="physics\tkPhysicsDebugDraw.h">
       <Filter>Source Files\physics</Filter>
     </ClInclude>
+    <ClInclude Include="physics\tkPhysicsObjectBase.h">
+      <Filter>Source Files\physics</Filter>
+    </ClInclude>
+    <ClInclude Include="physics\tkPhysicsDynamicObject.h">
+      <Filter>Source Files\physics</Filter>
+    </ClInclude>
+    <ClInclude Include="graphics\font\tkFontRender.h">
+      <Filter>Source Files\graphics\font</Filter>
+    </ClInclude>
+    <ClInclude Include="nature\tkSky.h">
+      <Filter>Source Files\nature</Filter>
+    </ClInclude>
+    <ClInclude Include="graphics\postEffect\tkDof.h">
+      <Filter>Source Files\graphics\postEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="graphics\postEffect\tkDofBlur.h">
+      <Filter>Source Files\graphics\postEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="graphics\tkChangeRenderTarget.h">
+      <Filter>Source Files\graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="graphics\tkHexaBlur.h">
+      <Filter>Source Files\graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gameObject\tkTransform.cpp">
@@ -681,6 +708,27 @@
     </ClCompile>
     <ClCompile Include="physics\tkPhysicsDebugDraw.cpp">
       <Filter>Source Files\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="physics\tkPhysicsObjectBase.cpp">
+      <Filter>Source Files\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="physics\tkPhysicsDynamicObject.cpp">
+      <Filter>Source Files\physics</Filter>
+    </ClCompile>
+    <ClCompile Include="graphics\font\tkFontRender.cpp">
+      <Filter>Source Files\graphics\font</Filter>
+    </ClCompile>
+    <ClCompile Include="nature\tkSky.cpp">
+      <Filter>Source Files\nature</Filter>
+    </ClCompile>
+    <ClCompile Include="graphics\postEffect\tkDof.cpp">
+      <Filter>Source Files\graphics\postEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="graphics\postEffect\tkDofBlur.cpp">
+      <Filter>Source Files\graphics\postEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="graphics\tkHexaBlur.cpp">
+      <Filter>Source Files\graphics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

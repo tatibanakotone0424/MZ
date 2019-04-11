@@ -7,5 +7,6 @@ public:
 	bool Start()override;
 	void Update()override;
 	prefab::CSkinModelRender* m_skinModelRedner;
+	prefab::CSoundSource* m_sound;
 };
 

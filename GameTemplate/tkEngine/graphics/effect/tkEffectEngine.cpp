@@ -38,6 +38,7 @@ namespace tkEngine {
 		m_renderer = EffekseerRendererDX11::Renderer::Create(
 			GraphicsEngine().GetD3DDevice(),
 			GraphicsEngine().GetD3DDeviceContext(),
+			GraphicsEngine().GetD3DImmediateDeviceContext(),
 			2000);
 		//エフェクトマネージャを初期化。
 		m_manager = Effekseer::Manager::Create(10000);
@@ -88,6 +89,8 @@ namespace tkEngine {
 		blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_BLUE | D3D11_COLOR_WRITE_ENABLE_GREEN;
 		pd3d->CreateBlendState(&blendDesc, &m_finalCombineAddBlendState);
+
+		m_cb.Create(nullptr, 16);
 
 	}
 	
@@ -183,26 +186,30 @@ namespace tkEngine {
 			//MSAAリゾルブ。
 			m_addEffectBuffer.ResovleMSAATexture(rc);
 
+			CVector2 uvOffset;
+			uvOffset.x = 0.5f / oldRenderTargets[0]->GetWidth();
+			uvOffset.y = 0.5f / oldRenderTargets[0]->GetHeight();
+			rc.UpdateSubresource(m_cb, &uvOffset);
+			rc.PSSetConstantBuffer(0, m_cb);
 			rc.PSSetShaderResource(0, m_addEffectBuffer.GetRenderTargetSRV());
 			rc.PSSetShader(m_copyPS);
 			rc.VSSetShader(m_copyVS);
-			rc.IASetInputLayout(m_copyVS.GetInputLayout());
-
+		
 			ID3D11DepthStencilState* oldDepthStencil = rc.GetDepthStencilState();
 			ID3D11RasterizerState* oldRSState = rc.GetRSState();
 			ID3D11BlendState* oldBlendState = rc.GetBlendState();
 
 
 			rc.RSSetState(RasterizerState::spriteRender);
-			rc.OMSetDepthStencilState(DepthStencilState::disable, 0);
-			rc.OMSetBlendState(m_finalCombineAddBlendState, 0, 0xFFFFFFFF);
+			rc.OMSetDepthStencilState(DepthStencilState::disable);
+			rc.OMSetBlendState(m_finalCombineAddBlendState );
 
 			ps->DrawFullScreenQuad(rc);
 
 			//戻す。
-			rc.OMSetDepthStencilState(oldDepthStencil, 0);
+			rc.OMSetDepthStencilState(oldDepthStencil);
 			rc.RSSetState(oldRSState);
-			rc.OMSetBlendState(oldBlendState, 0, 0xFFFFFFFF);
+			rc.OMSetBlendState(oldBlendState);
 
 		}
 

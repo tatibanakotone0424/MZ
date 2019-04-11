@@ -18,6 +18,7 @@ public:
 	};
 	CAnimationClip m_animClips[AnimationNoKazu];
 	prefab::CSkinModelRender* m_skinModel;
+	prefab::CFontRender* m_font;
 	int geizi = 0;
 };
 

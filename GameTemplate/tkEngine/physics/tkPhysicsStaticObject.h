@@ -6,32 +6,41 @@
 
 #include "tkEngine/physics/tkMeshCollider.h"
 #include "tkEngine/physics/tkRigidBody.h"
+#include "tkEngine/physics/tkPhysicsObjectBase.h"
+
 
 namespace tkEngine{
 	/*!
 	 * @brief	静的物理オブジェクト
 	 */
-	class CPhysicsStaticObject{
+	class CPhysicsStaticObject : public CPhysicsObjectBase{
 	public:
+		~CPhysicsStaticObject()
+		{
+			Release();
+		}
 		/*!
-		 * @brief	コンストラクタ。
-		 */
-		CPhysicsStaticObject();
+		* @brief	解放。
+		*/
+		void Release() override final;
 		/*!
-		 * @brief	デストラクタ。
-		 */
-		~CPhysicsStaticObject();
-		/*!
-		 * @brief	メッシュの静的オブジェクトを作成。
-		 *@param[in]	skinModel	スキンモデル。
-		 *@param[in]	pos			座標。
-		 *@param[in]	rot			回転。
-		 *@param[in]	scale		拡大率。
-		 */
-		void CreateMeshObject(CSkinModel& skinModel, CVector3 pos, CQuaternion rot, CVector3 scale);
-		void CreateMeshObject(prefab::CSkinModelRender* skinModelRender, CVector3 pos, CQuaternion rot, CVector3 scale);
+		* @brief	座標と回転を設定。
+		*/
+		void SetPositionAndRotation(const CVector3& pos, const CQuaternion& rot)
+		{
+			m_rigidBody.SetPositionAndRotation(pos, rot);
+		}
+		CRigidBody& GetRigidBody()
+		{
+			return m_rigidBody;
+		}
 	private:
-		CMeshCollider m_meshCollider;		//!<メッシュコライダー。
+		
+		/*!
+		* @brief	静的物理オブジェクト作成処理の共通処理。
+		*/
+		void CreateCommon(CVector3 pos, CQuaternion rot) override final;
+	private:
 		CRigidBody m_rigidBody;				//!<剛体。
 	};
 }

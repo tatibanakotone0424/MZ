@@ -57,7 +57,6 @@ namespace tkEngine{
 		ZeroMemory(&multiSampleDesc, sizeof(multiSampleDesc));
 		multiSampleDesc.Count = 1;
 		multiSampleDesc.Quality = 0;
-	//	m_effect = EffectManager().LoadEffect("Assets/presetShader/tonemap.fx");
 		//平均輝度計算用のレンダリングターゲットを作成。
 		for (int i = 0; i < NUM_CALC_AVG_RT; i++)
 		{
@@ -95,14 +94,6 @@ namespace tkEngine{
 		m_psCalcAdaptedLuminanceFirstShader.Load("shader/tonemap.fx", "PSCalcAdaptedLuminanceFirst", CShader::EnType::PS);
 		m_psFinal.Load("shader/tonemap.fx", "PSFinal", CShader::EnType::PS);
 		m_cbCalcLuminanceLog.Create(m_avSampleOffsets, sizeof(m_avSampleOffsets));
-
-		D3D11_SAMPLER_DESC desc;
-		ZeroMemory(&desc, sizeof(desc));
-		desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-		desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-		desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		m_samplerState.Create(desc);
 	}
 	void CTonemap::CalcLuminanceAvarage(CRenderContext& rc, CPostEffect* postEffect)
 	{
@@ -132,13 +123,9 @@ namespace tkEngine{
 		int curRtNo = NUM_CALC_AVG_RT - 1;
 		{
 			ge.BeginGPUEvent(L"CTonemap::CalcLuminanceLogAvarage");
-			
-			CRenderTarget* rts[] = {
-				&m_calcAvgRT[curRtNo]
-			};
-			rc.OMSetRenderTargets(1, rts);
-			rc.RSSetViewport(0.0f, 0.0f, (float)m_calcAvgRT[curRtNo].GetWidth(), (float)m_calcAvgRT[curRtNo].GetHeight());
-			rc.IASetInputLayout(m_vsShader.GetInputLayout());
+
+			CChangeRenderTarget chgRt(rc, m_calcAvgRT[curRtNo]);
+
 			rc.UpdateSubresource(m_cbCalcLuminanceLog, m_avSampleOffsets);
 			rc.PSSetConstantBuffer(0, m_cbCalcLuminanceLog);
 			rc.VSSetShader(m_vsShader);
@@ -153,11 +140,8 @@ namespace tkEngine{
 		{
 			ge.BeginGPUEvent(L"CTonemap::CalcLuminanceAvarage");
 			while (curRtNo > 0) {
-				CRenderTarget* rts[] = {
-					&m_calcAvgRT[curRtNo]
-				};
-				rc.OMSetRenderTargets(1, rts);
-				rc.RSSetViewport(0.0f, 0.0f, (float)m_calcAvgRT[curRtNo].GetWidth(), (float)m_calcAvgRT[curRtNo].GetHeight());
+
+				CChangeRenderTarget chgRt(rc, m_calcAvgRT[curRtNo]);
 				GetSampleOffsets_DownScale4x4(m_calcAvgRT[curRtNo].GetWidth(), m_calcAvgRT[curRtNo].GetHeight(), m_avSampleOffsets);
 				rc.UpdateSubresource(m_cbCalcLuminanceLog, m_avSampleOffsets);
 				rc.PSSetConstantBuffer(0, m_cbCalcLuminanceLog);
@@ -169,14 +153,10 @@ namespace tkEngine{
 			ge.EndGPUEvent();
 		}
 		//exp関数を用いて最終平均を求める。
-		CRenderTarget* rts[] = {
-			&m_calcAvgRT[curRtNo]
-		};
-		rc.OMSetRenderTargets(1, rts);
-		GetSampleOffsets_DownScale4x4(m_calcAvgRT[curRtNo].GetWidth(), m_calcAvgRT[curRtNo].GetHeight(), m_avSampleOffsets);
 		{
+			CChangeRenderTarget chgRt(rc, m_calcAvgRT[curRtNo]);
+			GetSampleOffsets_DownScale4x4(m_calcAvgRT[curRtNo].GetWidth(), m_calcAvgRT[curRtNo].GetHeight(), m_avSampleOffsets);
 			ge.BeginGPUEvent(L"CTonemap::CalcLuminanceExpAvarage");
-			rc.RSSetViewport(0.0f, 0.0f, (float)m_calcAvgRT[curRtNo].GetWidth(), (float)m_calcAvgRT[curRtNo].GetHeight());
 			rc.UpdateSubresource(m_cbCalcLuminanceLog, m_avSampleOffsets);
 			rc.PSSetConstantBuffer(0, m_cbCalcLuminanceLog);
 			rc.PSSetShaderResource(0, m_calcAvgRT[curRtNo + 1].GetRenderTargetSRV());	
@@ -190,11 +170,8 @@ namespace tkEngine{
 			if (m_isFirstWhenChangeScene == true) {
 				//シーンが切り替わって初回。
 				m_currentAvgRT = 1 ^ m_currentAvgRT;
-				CRenderTarget* rts[] = {
-					&m_avgRT[m_currentAvgRT]
-				};
-				rc.RSSetViewport(0.0f, 0.0f, (float)m_avgRT[m_currentAvgRT].GetWidth(), (float)m_avgRT[m_currentAvgRT].GetHeight());
-				rc.OMSetRenderTargets(1, rts);
+
+				CChangeRenderTarget chgRt(rc, m_avgRT[m_currentAvgRT]);
 				rc.PSSetShaderResource(1, m_calcAvgRT[0].GetRenderTargetSRV());
 				rc.PSSetShader(m_psCalcAdaptedLuminanceFirstShader);
 				postEffect->DrawFullScreenQuad(rc);
@@ -204,11 +181,9 @@ namespace tkEngine{
 					
 				CRenderTarget& lastRT = m_avgRT[m_currentAvgRT];
 				m_currentAvgRT = 1 ^ m_currentAvgRT;
-				CRenderTarget* rts[] = {
-					&m_avgRT[m_currentAvgRT]
-				};
-				rc.OMSetRenderTargets(1, rts);
-				rc.RSSetViewport(0.0f, 0.0f, (float)m_avgRT[m_currentAvgRT].GetWidth(), (float)m_avgRT[m_currentAvgRT].GetHeight());
+
+				CChangeRenderTarget chgRt(rc, m_avgRT[m_currentAvgRT]);
+
 				float deltaTime = GameTime().GetFrameDeltaTime();
 				rc.PSSetShaderResource(1, m_calcAvgRT[0].GetRenderTargetSRV());
 				rc.PSSetShaderResource(2, lastRT.GetRenderTargetSRV());
@@ -232,28 +207,23 @@ namespace tkEngine{
 		m_tonemapParam.deltaTime = GameTime().GetFrameDeltaTime();
 		rc.UpdateSubresource(m_cbTonemapCommon, &m_tonemapParam);
 		rc.PSSetConstantBuffer(1, m_cbTonemapCommon);
-		rc.PSSetSampler(0, m_samplerState);
+		rc.PSSetSampler(0, *CPresetSamplerState::clamp_clamp_clamp_linear);
 		CalcLuminanceAvarage(rc, postEffect);
 
 		
 		CShaderResourceView& sceneSRV = GraphicsEngine().GetMainRenderTarget().GetRenderTargetSRV();
 		
-		CRenderTarget& rt = GraphicsEngine().GetMainRenderTarget();
-		CRenderTarget* rts[] = {
-			&rt
-		};
-		rc.RSSetViewport(0.0f, 0.0f, (float)rt.GetWidth(), (float)rt.GetHeight());
-		rc.OMSetRenderTargets(1, rts);
+
+		CChangeRenderTarget chgRt(rc, GraphicsEngine().GetMainRenderTarget());
 		rc.PSSetShaderResource(0, sceneSRV);
 		rc.PSSetShaderResource(1, m_avgRT[m_currentAvgRT].GetRenderTargetSRV());
-		rc.OMSetBlendState(AlphaBlendState::disable, 0, 0xFFFFFFFF);
-		rc.OMSetDepthStencilState(DepthStencilState::disable, 0);
-		
+		rc.OMSetBlendState(AlphaBlendState::disable);
+		rc.OMSetDepthStencilState(DepthStencilState::disable);
 		rc.PSSetShader(m_psFinal);
 		postEffect->DrawFullScreenQuad(rc);
 		
 		//戻す。
-		rc.OMSetDepthStencilState(DepthStencilState::SceneRender, 0);
+		rc.OMSetDepthStencilState(DepthStencilState::SceneRender);
 
 		rc.PSUnsetShaderResource(0);
 		rc.PSUnsetShaderResource(1);

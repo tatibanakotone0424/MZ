@@ -12,6 +12,13 @@ namespace tkEngine{
 	 */
 	class CBlur : Noncopyable{
 	public:
+		/// <summary>
+		/// ガウシアンブラーのレンダリングステップ。
+		/// </summary>
+		enum EnRenderStep {
+			enRenderStep_XBlur,		//Xブラー。
+			enRenderStep_YBlur,		//Yブラー。
+		};
 		/*!
 		 * @brief	コンストラクタ。
 		 */
@@ -26,6 +33,7 @@ namespace tkEngine{
 		 *@param[in]	blurIntensity	ブラーの強さ。値が大きいほどボケる。
 		 */
 		void Init( CShaderResourceView& srcTexture, float blurIntensity = 25.0f );
+		void InitScaleup(CShaderResourceView& srcTexture, float blurIntensity = 25.0f );
 		/*!
 		* @brief	ブラーをかけるソーステクスチャを設定。。
 		*@param[in]	srcTexture		元テクスチャ。
@@ -37,7 +45,7 @@ namespace tkEngine{
 		/*!
 		 * @brief	ブラーを実行。
 		 */
-		void Execute(CRenderContext& rc);
+		void Execute(CRenderContext& rc, std::function<void(CRenderContext&, EnRenderStep )> onPreDraw = nullptr );
 		/*!
 		* @brief	実行結果を格納しているSRVを取得。
 		*/
@@ -45,7 +53,6 @@ namespace tkEngine{
 		{
 			return m_yBlurRT.GetRenderTargetSRV();
 		}
-	
 	private:
 		/*!
 		* @brief	ガウスフィルタの重みを更新。
@@ -73,7 +80,6 @@ namespace tkEngine{
 		int m_srcTextureWidth = 0;			//!<ソーステクスチャの幅。
 		int m_srcTextureHeight = 0;			//!<ソーステクスチャの高さ。
 		CPrimitive	m_fullscreenQuad;		//!<フルスクリーン描画用の矩形プリミティブ。
-		CSamplerState m_samplerState;		//!<サンプラステート。@todo ひとまとめにした方がいい?。
 		float m_blurIntensity = 25.0f;
 	};
 }

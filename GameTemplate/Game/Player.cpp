@@ -1,4 +1,4 @@
-#include "stdafx.h"
+ï»¿#include "stdafx.h"
 #include "Player.h"
 
 
@@ -22,6 +22,7 @@ bool Player::Start()
 	pos.y = 0.0f;
 	pos.z = 300.0f;
 	m_skinModel->SetPosition(pos);
+	m_font = NewGO<prefab::CFontRender>(0);
 	return true;
 }
 void Player::Update()
@@ -29,7 +30,16 @@ void Player::Update()
 	geizi++; {
 
 		if (geizi == 10) {
-			printf("Aƒ{ƒ^ƒ“::UŒ‚,Bƒ{ƒ^ƒ“::–hŒä");
+			wchar_t text[50];
+			swprintf(text,L"Aãƒœã‚¿ãƒ³::æ”»æ’ƒã™ã‚‹\nBãƒœã‚¿ãƒ³::é˜²å¾¡ã™ã‚‹");
+			m_font->SetText(text);
+			m_font->SetPosition({ -100.0f,-300.0f });
+			m_font->SetPivot({ 0.0f,0.0f });
+			/*swprintf(text, L"Bãƒœã‚¿ãƒ³::é˜²å¾¡ã™ã‚‹\n");
+			m_font->SetText(text);
+			m_font->SetPosition({ -500.0f,100.0f });
+			m_font->SetPivot({ 0.0f,0.0f });*/
+			
 			if (Pad(0).IsTrigger(enButtonA)) {
 
 

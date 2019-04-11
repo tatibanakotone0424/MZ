@@ -9,14 +9,15 @@
 namespace tkEngine{
 	//!<G-Bufferの定義。
 	enum EnGBuffer{
-		enGBufferAlbedo,	//!<アルベド。
-		enGBufferNormal,	//!<法線。
-		enGBufferSpecular,	//!<スペキュラ。
-		enGBufferShadow,	//!<影マップ。
-		enGBufferDepth,		//!<深度。
-		enGBufferTangent,	//!<接法線。
-		enGBufferMateriaID,	//!<マテリアルID。
-		enGBufferNum,		//!<G-Bufferの数。
+		enGBufferAlbedo,		//!<アルベド。
+		enGBufferNormal,		//!<法線。
+		enGBufferSpecular,		//!<スペキュラ。
+		enGBufferShadow,		//!<影マップ。
+		enGBufferDepth,			//!<深度。xには射影空間での深度値、yにはカメラ空間での深度値が記録されている。
+		enGBufferTangent,		//!<接法線。
+		enGBufferMateriaID,		//!<マテリアルID。
+		enGBufferEmission,		//!<自己発光色。
+		enGBufferNum,			//!<G-Bufferの数。
 	};
 	/*!
 	 * @brief	G-Buffer。
@@ -41,6 +42,16 @@ namespace tkEngine{
 		void AddSkinModel(CSkinModel* skinModel)
 		{
 			m_skinModels.push_back(skinModel);
+		}
+		/*!
+		*@brief	スキンモデルを除去。
+		*/
+		void RemoveSkinModel(CSkinModel* skinModel)
+		{
+			auto it = std::find(m_skinModels.begin(), m_skinModels.end(), skinModel);
+			if (it != m_skinModels.end() ){
+				m_skinModels.erase(it);
+			}
 		}
 		/*!
 		 * @brief	描画。

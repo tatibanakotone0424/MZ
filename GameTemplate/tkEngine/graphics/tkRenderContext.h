@@ -35,6 +35,7 @@ namespace tkEngine {
 		enRenderStep_Bloom,						//!<ブルーム。
 		enRenderStep_Toonmap,					//!<トーンマップ。
 		enRenderStep_AntiAlias,					//!<アンチエイリアス。
+		enRenderStep_Dof,						//!<DOF。
 		enRenderStep_Render2DToScene,			//!<2Dをシーンに描画。
 	};
 	class CRenderContext : Noncopyable {
@@ -46,40 +47,88 @@ namespace tkEngine {
 		* @brief	初期化。
 		*@param[in]	pD3DDeviceContext	D3Dデバイスコンテキスト。開放は呼び出しもとで行ってください。
 		*/
-		void Init(ID3D11DeviceContext* pD3DDeviceContext);
+		void Init(ID3D11DeviceContext* pD3DDeviceContext, ID3D11DeviceContext* pD3DDeferredDeviceContext);
+		/// <summary>
+		/// 現在のレンダリングターゲットをスタックにプッシュ。
+		/// </summary>
+		void PushRenderTargets()
+		{
+			SRenderTarget renderTarget;
+			OMGetRenderTargets(renderTarget.numRenderTargetViews, renderTarget.renderTargets);
+			m_renderTargetStack.push(renderTarget);
+		}
+		/// <summary>
+		/// スタックからレンダリングターゲットをポップ。
+		/// </summary>
+		/// <param name="isApplyRenderState">
+		/// ポップしたレンダリングターゲットをレンダリングパイプラインに設定するかどうかのフラグ。
+		/// </param>
+		void PopRenderTargets(bool isSetRenderStateToRenderPipeline)
+		{
+			auto rt = m_renderTargetStack.top();
+			m_renderTargetStack.pop();
+			OMSetRenderTargets(rt.numRenderTargetViews, rt.renderTargets);
+			if (rt.renderTargets[0] != nullptr) {
+				RSSetViewport(
+					0.0f, 0.0f, (float)rt.renderTargets[0]->GetWidth(), (float)rt.renderTargets[0]->GetHeight());
+			}
+		}
+		/// <summary>
+		/// 現在のレンダリングステートをスタックにプッシュ。
+		/// </summary>
+		void PushRenderState()
+		{
+			m_renderStateStack.push(m_currentRenderState);
+		}
+		/// <summary>
+		/// スタックに退避したレンダリングステートをポップ。
+		/// </summary>
+		/// <param name="isApplyRenderState">
+		/// ポップしたレンダリングステートをレンダリングパイプラインに設定するかどうかのフラグ。
+		/// </param>
+		void PopRenderState(bool isSetRenderStateToRenderPipeline)
+		{
+			m_currentRenderState = m_renderStateStack.top();
+			m_renderStateStack.pop();
+			if (isSetRenderStateToRenderPipeline == true) {
+				m_pD3DDeviceContext->OMSetBlendState(m_currentRenderState.blendState, 0, 0xFFFFFFFF);
+				m_pD3DDeviceContext->RSSetState(m_currentRenderState.rasterrizerState);
+				m_pD3DDeviceContext->OMSetDepthStencilState(m_currentRenderState.depthStencilState, 0);
+			}
+		}
 		/*!
 		* @brief	Blendステートを設定する。
 		* @details
 		*  ID3D11DeviceContext::OMSetBlendStateと同じ。
 		*/
-		void OMSetBlendState(ID3D11BlendState *pBlendState, const FLOAT BlendFactor[4], UINT SampleMask)
+		void OMSetBlendState(ID3D11BlendState *pBlendState)
 		{
-			m_currentBlendState = pBlendState;
-			m_pD3DDeviceContext->OMSetBlendState(pBlendState, BlendFactor, SampleMask);
+			m_currentRenderState.blendState = pBlendState;
+			m_pD3DDeviceContext->OMSetBlendState(pBlendState, 0, 0xFFFFFFFF);
 		}
 		/*!
 		*@brief	現在のBlendステートを取得する。
 		*/
 		ID3D11BlendState* GetBlendState()
 		{
-			return m_currentBlendState;
+			return m_currentRenderState.blendState;
 		}
 		/*!
 		* @brief	DepthStencilステートを設定する。
 		* @details
 		*  ID3D11DeviceContext::OMSetDepthStencilStateと同じ。
 		*/
-		void OMSetDepthStencilState(ID3D11DepthStencilState *pDepthStencilState, UINT StencilRef)
+		void OMSetDepthStencilState(ID3D11DepthStencilState *pDepthStencilState)
 		{
-			m_pD3DDeviceContext->OMSetDepthStencilState(pDepthStencilState, StencilRef);
-			m_currentDepthStencilState = pDepthStencilState;
+			m_pD3DDeviceContext->OMSetDepthStencilState(pDepthStencilState, 0);
+			m_currentRenderState.depthStencilState = pDepthStencilState;
 		}
 		/*!
 		* @brief	DepthStencilステートを取得する。
 		*/
 		ID3D11DepthStencilState* GetDepthStencilState() const
 		{
-			return m_currentDepthStencilState;
+			return m_currentRenderState.depthStencilState;
 		}
 		/*!
 		* @brief	レンダリングターゲットビューを設定。
@@ -89,6 +138,11 @@ namespace tkEngine {
 		*@param[in]	renderTarget	バインドするレンダリングターゲットの配列へのポインタ。
 		*/
 		void OMSetRenderTargets(unsigned int NumViews, CRenderTarget* renderTarget[]);
+		void OMSetRenderTargets(unsigned int NumViews, ID3D11RenderTargetView *const *ppRenderTargetViews, ID3D11DepthStencilView *pDepthStencilView)
+		{
+			m_pD3DDeviceContext->OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView);
+			m_numRenderTargetView = NumViews;
+		}
 		/*!
 		* @brief	現在バインドされているレンダリングターゲットビューを取得。
 		*@param[out]	numViews		バインドされているレンダリングターゲットの数。
@@ -121,15 +175,15 @@ namespace tkEngine {
 		*/
 		void RSSetState(ID3D11RasterizerState *pRasterizerState)
 		{
-			m_currentRasterrizerState = pRasterizerState;
-			m_pD3DDeviceContext->RSSetState(pRasterizerState);
+			m_currentRenderState.rasterrizerState = pRasterizerState;
+			m_pD3DDeviceContext->RSSetState(pRasterizerState);	
 		}
 		/*!
 		*@brief	現在のラスタライザステートを取得。
 		*/
 		ID3D11RasterizerState* GetRSState() const
 		{
-			return m_currentRasterrizerState;
+			return m_currentRenderState.rasterrizerState;
 		}
 		/*!
 		* @brief	レンダリングターゲットをクリア。
@@ -257,6 +311,7 @@ namespace tkEngine {
 		*/
 		void VSSetShader(CShader& shader)
 		{
+			IASetInputLayout(shader.GetInputLayout());
 			m_pD3DDeviceContext->VSSetShader((ID3D11VertexShader*)shader.GetBody(), NULL, 0);
 		}
 		/*!
@@ -362,6 +417,7 @@ namespace tkEngine {
 		{
 			m_pD3DDeviceContext->Dispatch(threadGroupCountX, threadGroupCountY, thredGroupCountZ);
 		}
+		private:
 		/*!
 		* @brief	入力レイアウトを設定。
 		*/
@@ -369,6 +425,7 @@ namespace tkEngine {
 		{
 			m_pD3DDeviceContext->IASetInputLayout(inputLayout);
 		}
+		public:
 		/*!
 		* @brief	リソースをコピー。
 		*@param[out]	destRes		コピー先。
@@ -401,14 +458,14 @@ namespace tkEngine {
 		void Map(TBuffer& buffer, UINT subresource, D3D11_MAP mapType, UINT mapFlags, D3D11_MAPPED_SUBRESOURCE& mappedResource)
 		{
 			if (buffer.GetBody() != nullptr) {
-				m_pD3DDeviceContext->Map(buffer.GetBody(), subresource, mapType, mapFlags, &mappedResource);
+				m_pD3DImmidiateDeviceContext->Map(buffer.GetBody(), subresource, mapType, mapFlags, &mappedResource);
 			}
 		}
 		template<class TBuffer>
 		void Unmap(TBuffer& buffer, UINT subresource)
 		{
 			if (buffer.GetBody() != nullptr) {
-				m_pD3DDeviceContext->Unmap(buffer.GetBody(), subresource);
+				m_pD3DImmidiateDeviceContext->Unmap(buffer.GetBody(), subresource);
 			}
 		}
 		/*!
@@ -458,12 +515,37 @@ namespace tkEngine {
 				Format
 			);
 		}
+		/// <summary>
+		/// 描画コマンドの生成で使用しているデバイスコンテキストを取得する。
+		/// </summary>
+		/// <returns></returns>
+		ID3D11DeviceContext* GetD3DDeviceContext() const
+		{
+			return m_pD3DDeviceContext;
+		}
 	private:
-		ID3D11DepthStencilState*		m_currentDepthStencilState = nullptr;	//!<現在のデプスステンシルステート。
-		ID3D11RasterizerState*			m_currentRasterrizerState = nullptr;	//!<現在のラスタライザステート。
-		ID3D11BlendState*				m_currentBlendState = nullptr;			//!<現在のブレンドステート。
-		ID3D11DeviceContext*			m_pD3DDeviceContext = nullptr;	//!<D3Dデバイスコンテキスト。
-		D3D11_VIEWPORT 					m_viewport;						//!<ビューポート。
+		/// <summary>
+		/// 各種レンダリングステート。
+		/// </summary>
+		struct SRenderState {
+			ID3D11DepthStencilState*	depthStencilState = nullptr;	//!<現在のデプスステンシルステート。
+			ID3D11RasterizerState*		rasterrizerState = nullptr;		//!<現在のラスタライザステート。
+			ID3D11BlendState*			blendState = nullptr;			//!<現在のブレンドステート。
+
+		};
+		/// <summary>
+		/// レンダリングターゲット。
+		/// </summary>
+		struct SRenderTarget {
+			CRenderTarget* renderTargets[MRT_MAX] = { nullptr };
+			unsigned int numRenderTargetViews = 0;
+		};
+		SRenderState m_currentRenderState;	//現在のレンダリングステート。
+		std::stack< SRenderState> m_renderStateStack;	//レンダリングステートのスタック。
+		std::stack<SRenderTarget> m_renderTargetStack;	//レンダリングターゲットのスタック。
+		ID3D11DeviceContext*			m_pD3DImmidiateDeviceContext = nullptr;	//!<D3D即時デバイスコンテキスト。MapとUnmapでは即時デバイスコンテキストが必要なので、持たす。
+		ID3D11DeviceContext*			m_pD3DDeviceContext = nullptr;			//!<描画コマンドを積んでいくコンテキスト。
+		D3D11_VIEWPORT 					m_viewport;								//!<ビューポート。
 		CRenderTarget*					m_renderTargetViews[MRT_MAX] = { nullptr };
 		unsigned int 					m_numRenderTargetView = 0;		//!<レンダリングターゲットビューの数。
 		EnRenderStep					m_renderStep = enRenderStep_LightCulling;	//!<レンダリングステップ。

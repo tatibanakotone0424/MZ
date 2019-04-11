@@ -20,7 +20,7 @@ namespace tkEngine{
 		m_skinModelData->FindMesh([&](auto& mesh) {
 			auto vMax = CVector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 			auto vMin = CVector3(FLT_MAX, FLT_MAX, FLT_MAX);
-			auto deviceContext = GraphicsEngine().GetD3DDeviceContext();
+			auto deviceContext = GraphicsEngine().GetD3DImmediateDeviceContext();
 			{
 				D3D11_MAPPED_SUBRESOURCE subresource;
 				auto hr = deviceContext->Map(mesh->vertexBuffer.Get(), 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &subresource);
@@ -53,14 +53,6 @@ namespace tkEngine{
 		m_skinModelData = &modelData;
 		m_cb.Create(NULL, sizeof(SVSConstantBuffer));
 		m_shadowCaster.Create(this);
-
-		D3D11_SAMPLER_DESC desc;
-		ZeroMemory(&desc, sizeof(desc));
-		desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-		desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-		desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		m_samplerState.Create(desc);
 
 		if (maxInstance > 1) {
 			//インスタンシング用のデータを作成。
@@ -183,12 +175,13 @@ namespace tkEngine{
 		vsCb.mWorld = m_worldMatrix;
 		vsCb.mProj = projMatrix;
 		vsCb.mView = viewMatrix;
+		vsCb.emissionColor = m_emissionColor;
 		vsCb.isShadowReceiver = m_isShadowReceiver ? 1 : 0;
 		
 		renderContext.UpdateSubresource(m_cb, &vsCb);
 		renderContext.VSSetConstantBuffer(enSkinModelCBReg_VSPS, m_cb);
 		renderContext.PSSetConstantBuffer(enSkinModelCBReg_VSPS, m_cb);
-		renderContext.PSSetSampler(0, m_samplerState);
+		renderContext.PSSetSampler(0, *CPresetSamplerState::clamp_clamp_clamp_linear);
 		
 		m_skinModelData->GetSkeleton().Render(renderContext);
 

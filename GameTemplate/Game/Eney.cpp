@@ -12,7 +12,7 @@ Eney::~Eney()
 }
 bool Eney::Start()
 {
-
+	m_animation[OBAKE_UGOKI].Load(L"animData/Player/obake_ugoki.tka");
 	m_skinModel_obake = NewGO<prefab::CSkinModelRender>(0);
 	m_skinModel_obake->Init(L"modelData/obake.cmo");
 	CVector3 pos;
@@ -24,5 +24,7 @@ bool Eney::Start()
 }
 void Eney::Update()
 {
+	joutai = JOUTAI_TAIKI;
+	m_skinModel_obake->PlayAnimation(OBAKE_UGOKI);
 	return;
 }

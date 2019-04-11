@@ -29,6 +29,13 @@ namespace prefab{
 			m_animation.Init(m_skinModel, m_animationClips, m_numAnimationClips);
 		}
 	}
+	void CSkinModelRender::OnDestroy()
+	{
+		auto& shadowMap = GraphicsEngine().GetShadowMap();
+		shadowMap.Remove(&m_skinModel.GetShadowCaster());
+		auto& gBuffer = GraphicsEngine().GetGBufferRender();
+		gBuffer.RemoveSkinModel(&m_skinModel);
+	}
 	/*!
 	 * @brief	更新前に呼ばれる関数。
 	 */
@@ -74,7 +81,7 @@ namespace prefab{
 	void CSkinModelRender::FindVertexPosition(std::function<void(CVector3* pos)> func)
 	{
 		m_skinModelData.FindMesh([&](const auto& mesh) {
-			ID3D11DeviceContext* deviceContext = GraphicsEngine().GetD3DDeviceContext();
+			ID3D11DeviceContext* deviceContext = GraphicsEngine().GetD3DImmediateDeviceContext();
 			//頂点バッファを作成。
 			{
 				D3D11_MAPPED_SUBRESOURCE subresource;
