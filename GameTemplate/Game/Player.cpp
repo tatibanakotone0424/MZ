@@ -27,7 +27,7 @@ bool Player::Start()
 }
 void Player::Update()
 {
-	geizi++; {
+	geizi++;
 
 		if (geizi == 10) {
 			wchar_t text[50];
@@ -41,13 +41,15 @@ void Player::Update()
 			m_font->SetPivot({ 0.0f,0.0f });*/
 			
 			if (Pad(0).IsTrigger(enButtonA)) {
-
+				joutai= JOUTAI_R;
+				m_skinModel->PlayAnimation(Animation_R);
 
 			}
 			if (Pad(0).IsTrigger(enButtonB)) {
-
+				joutai = JOUTAI_RL;
+				m_skinModel->PlayAnimation(Animation_LR);
 			}
 		}
+		return;
 	}
-	return;
-}
+	

@@ -24,7 +24,14 @@ bool Eney::Start()
 }
 void Eney::Update()
 {
-	joutai = JOUTAI_TAIKI;
-	m_skinModel_obake->PlayAnimation(OBAKE_UGOKI);
+	geizi++;
+	if (geizi == 10) {
+		if (joutai == JOUTAI_TAIKI) {
+
+			/*joutai = JOUTAI_TAIKI;
+			m_skinModel_obake->PlayAnimation(OBAKE_UGOKI);*/
+
+		}
+	}
 	return;
 }

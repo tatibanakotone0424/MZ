@@ -20,5 +20,6 @@ public:
 	prefab::CSkinModelRender* m_skinModel;
 	prefab::CFontRender* m_font;
 	int geizi = 0;
+	int  joutai = 0;
 };
 

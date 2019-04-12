@@ -16,5 +16,6 @@ public:
 	prefab::CSkinModelRender* m_skinModel_obake;
 	CAnimationClip m_animation[AnimationNokazu];
 	int joutai = 0;
+	int geizi= 0;
 };
 
