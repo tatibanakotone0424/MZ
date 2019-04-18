@@ -1,12 +1,10 @@
 #include "stdafx.h"
 #include "haikei.h"
 
-
 haikei::haikei()
 {
+
 }
-
-
 
 haikei::~haikei()
 {

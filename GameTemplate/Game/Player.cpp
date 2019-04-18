@@ -4,11 +4,13 @@
 
 Player::Player()
 {
+
 }
 
 
 Player::~Player()
 {
+
 }
 bool Player::Start()
 {
@@ -27,8 +29,40 @@ bool Player::Start()
 }
 void Player::Update()
 {
-	geizi++;
+	if (joutai == JOUTAI_R) {
+		m_font->SetText(L"");
+		//if (/*アニメーションの再生が終わったら*/) {
+		//	//待機状態に戻る。
+		//}
 
+	}
+	else if (joutai == JOUTAI_RL) {
+		m_font->SetText(L"");
+	}
+	else if (joutai == JOUTAI_TAIKI) {
+		//ゲージを加算して、ゲージの値が10になったら、
+		//joutaiにKOMANDOを代入する。
+		geizi++;
+		if (geizi == 120) {
+			joutai = KOMANDO;
+		}
+	}
+	else if (joutai == KOMANDO)
+	{
+		wchar_t text[50];
+		swprintf(text, L"Aボタン::攻撃する\nBボタン::防御する");
+		m_font->SetText(text);
+		m_font->SetPosition({ -100.0f,-300.0f });
+		m_font->SetPivot({ 0.0f,0.0f });
+		if (Pad(0).IsTrigger(enButtonA)) {
+			joutai = JOUTAI_R;
+		}
+		if (Pad(0).IsTrigger(enButtonB)) {
+			joutai = JOUTAI_RL;
+		}
+
+	}
+#if 0
 		if (geizi == 10) {
 			wchar_t text[50];
 			swprintf(text,L"Aボタン::攻撃する\nBボタン::防御する");
@@ -50,6 +84,7 @@ void Player::Update()
 				m_skinModel->PlayAnimation(Animation_LR);
 			}
 		}
+#endif
 		return;
 	}
 	

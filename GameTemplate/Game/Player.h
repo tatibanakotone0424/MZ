@@ -14,12 +14,13 @@ public:
 	enum {
 	  JOUTAI_R,
 	  JOUTAI_RL,
+	  KOMANDO,
 	  JOUTAI_TAIKI
 	};
 	CAnimationClip m_animClips[AnimationNoKazu];
 	prefab::CSkinModelRender* m_skinModel;
 	prefab::CFontRender* m_font;
 	int geizi = 0;
-	int  joutai = 0;
+	int  joutai = JOUTAI_TAIKI;
 };
 

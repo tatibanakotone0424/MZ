@@ -21,6 +21,7 @@ bool Eney::Start()
 	pos.y = 30.0f;
 	pos.z = -30.0f;
 	m_skinModel_obake->SetPosition(pos);
+	m_animation[OBAKE_UGOKI].SetLoopFlag(true);
 	return true;
 }
 void Eney::Update()
@@ -33,6 +34,7 @@ void Eney::Update()
 			m_skinModel_obake->PlayAnimation(OBAKE_UGOKI);
 
 		}
+
 	}
 	return;
 }
