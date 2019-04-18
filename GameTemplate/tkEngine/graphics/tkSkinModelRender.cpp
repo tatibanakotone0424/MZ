@@ -16,6 +16,7 @@ namespace prefab{
 		int maxInstance )
 	{
 		m_enFbxUpAxis = fbxUpAxis;
+
 		m_skinModelData.Load(filePath);
 		m_skinModel.Init(m_skinModelData, maxInstance);
 		m_frustumCulling.Init(MainCamera());
